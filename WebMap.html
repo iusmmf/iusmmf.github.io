@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8' />
+    <title>MMF | 東京 23 区全体の時間帯別人数</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        
+        body {
+            padding: 0;
+            margin: 0;
+            font-family:  'Helvetica Neue', Helvetica, Arial, Sans-serif;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        #info {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            width: 202px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border: 1px solid #b2b2b2;
+            margin-bottom: 20px;
+            font: 11px/20px 'Yu Gothic', Arial, Helvetica, sans-serif;
+        }
+        
+        .header {
+            margin-bottom: 20px;
+            font: 25px/33px 'Yu Gothic', Arial, Helvetica, sans-serif;
+            font-weight: 900;
+        }
+        
+        .subheader {
+            margin-bottom: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 20px;
+        }
+
+        .color {
+            height:12px;
+            width:12px;
+        }
+        
+        .\#0 {background-color: #5D4EA1}
+        .\#1000 {background-color: #3582BA}
+        .\#2000 {background-color: #4BB19F}
+        .\#3000 {background-color: #78B58B}
+        .\#4500 {background-color: #91B260}
+        .\#6000 {background-color: #ADAC4A}
+        .\#8000 {background-color: #C7A12C}
+        .\#10000 {background-color: #D68C1C}
+        .\#15000 {background-color: #ED701C}
+        .\#20000 {background-color: #EB462C}
+        .\#30000 {background-color: #D31D32}
+        .\#40000 {background-color: #A41C3F}
+
+        .colorlabel {
+            margin-left: 2px;
+        }
+        
+        .slider {
+            margin: 5px 0px 20px 0px;
+        }
+        
+        #filters {
+            position: absolute;
+            bottom: 50px;
+            left: 40px;
+            width: 310px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border: 1px solid #b2b2b2;
+            font: 11px/20px 'Yu Gothic', Arial, Helvetica, sans-serif;
+            text-align: center;
+        }
+        
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 290px;
+            background: transparent;
+        }
+        
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 1px;
+            width: 290px;
+            cursor: pointer;
+            background: #b2b2b2;
+            border: none;
+        }
+
+        input[type=range]:focus::-webkit-slider-runnable-track {
+            background: #b2b2b2;
+        }
+
+        input[type=range]::-ms-track {
+            height: 1px;
+            width: 290px;
+            cursor: pointer;
+            background: #b2b2b2; 
+            border: none;
+        }
+        
+        input[type=range]::-moz-range-track {
+            height: 1px;
+            width: 290px;
+            cursor: pointer;
+            background: #b2b2b2; 
+            border: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 50px;
+            cursor: pointer;
+            background: none;
+            border-radius: 3px;
+            margin-left:0px;
+            margin-top: -8px;
+        }
+        
+        input[type=range]::-moz-range-thumb {
+            -moz-appearance: none;
+            height: 20px;
+            width: 50px;
+            cursor: pointer;
+            background: none;
+            border-radius: 3px;
+            margin-left:0px;
+            margin-top: -8px;
+        }
+        
+        input[type=range]::-ms-thumb {
+            appearance: none;
+            height: 20px;
+            width: 50px;
+            cursor: pointer;
+            background: none;
+            border-radius: 3px;
+            margin-left:0px;
+            margin-top: -8px;
+        }
+        
+        .sliderthumb {
+            display: block;
+            position: absolute;
+            left: 50%;
+            height: 24px;
+            width: 55px;
+            pointer-events: none;
+            background: #CBE9EA;
+            border: 1px solid #009999;
+            transform: translate(-50%, 0);
+            margin-top: -20px;
+            color: #009999;
+            font-weight: 800;
+            font-size: 12px;
+            line-height: 24px;
+            text-align: center;
+        }
+        
+        .showdates {
+            width: 290px;
+            cursor: pointer;
+            padding: 2px;
+            font: 12px/18px 'Yu Gothic', Arial, Helvetica, sans-serif;
+            margin: 10px auto 0px auto;
+            transition: 0.5s;
+        }
+        
+        .showdates:hover {
+            background: rgba(0,153,153,0.1);
+            color: #009999;
+            transition: 0.5s;
+        }
+        
+        .hidedates {
+            width: 290px;
+            cursor: pointer;
+            padding: 2px;
+            font: 12px/18px 'Yu Gothic', Arial, Helvetica, sans-serif;
+            color: #b2b2b2;
+            color: #b2b2b2;
+            margin: 10px auto 0px auto;
+            transition: 0.5s;
+        }
+        
+        .hidedates:hover {
+            background: rgba(0,153,153,0.1);
+            color: #009999;
+            transition: 0.5s;
+        }
+        
+        .dates {
+            display: none;
+        }
+                
+        .dateselect {
+            margin: 0 auto;
+        }
+                
+        .datecat {
+            padding-top: 2px;
+            margin-right: 3px;
+            font-size: 12px;
+            text-align: right;
+        }
+        
+        .dates input[type="radio"] {
+            display: none;
+        }
+
+        .dates label {
+            display: inline-block;
+            width: 30px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.6);
+            padding: 2px 3px 1px 3px;
+            border: 1px solid #ddd;
+            margin: 3px 0px 3px 1px;
+            color: #555;
+            font-size: 12px;
+            text-align: center;
+            transition: 0.5s;
+        }
+        
+        .dates label:hover {
+            background: rgba(0,153,153,0.1);
+            border: 1px solid #009999;
+            color: #009999;
+            transition: 0.3s;
+        }
+
+        .dates input[type="radio"]:checked+label {
+            background: #CBE9EA;
+            border: 1px solid #009999;
+            color: #009999;
+            font-weight: 800;
+        }
+        
+        #topbar {
+            display:none;
+        }
+        
+        .menu {
+            display:none;
+        }
+        
+        #info-mobile {
+            display:none;
+        }
+
+        .header-mobile {
+            display:none;
+        }
+        
+        /* Optimize for mobile devices (screen width below 768px) */
+        
+        @media screen and (max-width:768px) {
+            
+            #map {
+                zoom: 33%;
+            }
+            
+            #topbar {
+                display: block;
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                height: 50px;
+                width: 100%;
+                background: rgba(255,255,255,0.95);
+                border-bottom: 1px solid #b2b2b2;
+            }
+            
+            .header-mobile {
+                display: block;
+                float:left;
+                margin: 12px 0px 12px 20px;
+                font: 18px 'Yu Gothic', Arial, Helvetica, sans-serif;
+                font-weight: 900;
+            }
+            
+            .topbarbutton {
+                display: block;
+                float: right;
+                width: 30px;
+                background: rgba(255,255,255,0.7);
+                padding: 2px 5px;
+                border: 1px solid #cdcdcd;
+                margin: 12px 20px 0px 0px;
+                color: #000;
+                font: 12px 'Yu Gothic', Arial, Helvetica, sans-serif;
+                text-align: center;
+            }
+            
+            #info {
+                display: none;
+            }
+            
+            .info-mobile {
+                display: none;
+                position: absolute;
+                top: 60px;
+                right: 20px;
+                width: 202px;
+                background: rgba(255,255,255,0.95);
+                padding: 15px;
+                border: 1px solid #b2b2b2;
+                font: 11px/20px 'Yu Gothic', Arial, Helvetica, sans-serif;
+            }
+
+            .subheader-mobile {
+                display: block;
+                margin-bottom: 3px;
+                font: 15px 'Yu Gothic', Arial, Helvetica, sans-serif;
+                font-weight: 700;
+            }
+            
+            #filters {
+                bottom: 20px;
+                left: 0px;
+                right: 0px;
+                margin: auto;
+            }
+        
+            .showdates:hover {
+                background: none;
+                color: #b2b2b2;
+            }
+
+            .hidedates:hover {
+                background: none;
+                color: #000;
+            }
+        }
+      
+      </style>
+    </head>
+    
+    
+    <body>
+
+        <div id='map'></div>
+
+        <!-- Only in mobile view: top bar and color legend -->
+
+        <div id="topbar">
+            <div class="header-mobile">東京 23 区全体の時間帯別人数</div>
+            <div class="topbarbutton">凡例</div>
+        </div>
+
+        <div class="info-mobile">
+            <div class="subheader-mobile">人数</div>
+            <table>
+                <tr>
+                    <td><div class="color #0"></div></td><td><div class="colorlabel">0 - 1000</div></td>
+                    <td width="12px"></td>
+                    <td><div class="color #8000"></div></td><td><div class="colorlabel">8001 - 10000</div></td>
+                </tr>
+                <tr>
+                    <td><div class="color #1000"></div></td><td><div class="colorlabel">1001 - 2000</div></td>
+                    <td width="12px"></td>
+                    <td><div class="color #10000"></div></td><td><div class="colorlabel">10001 - 15000</div></td>
+                </tr>
+                <tr>
+                    <td><div class="color #2000"></div></td><td><div class="colorlabel">2001 - 3000</div></td>
+                    <td width="12px"></td>
+                    <td><div class="color #15000"></div></td><td><div class="colorlabel">15001 - 20000</div></td>
+                </tr>
+                <tr>
+                    <td><div class="color #3000"></div></td><td><div class="colorlabel">3001 - 4500</div></td>
+                    <td width="12px"></td>
+                    <td><div class="color #20000"></div></td><td><div class="colorlabel">20001 - 30000</div></td>
+                </tr>
+                <tr>
+                    <td><div class="color #4500"></div></td><td><div class="colorlabel">4501 - 6000</div></td>
+                    <td width="12px"></td>
+                    <td><div class="color #30000"></div></td><td><div class="colorlabel">30001 - 4000</div></td>
+                </tr>
+                <tr>
+                    <td><div class="color #6000"></div></td><td><div class="colorlabel">6001 - 8000</div></td>
+                    <td width="12px"></td>
+                    <td><div class="color #40000"></div></td><td><div class="colorlabel">4001 +</div></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Show/hide legend in mobile view -->
+        
+        <script>
+            $(".topbarbutton").click(function(){
+              $(".info-mobile").toggle();
+                if($(".info-mobile").is(":visible")){
+                    $(".topbarbutton").css({
+                        "background": "#CBE9EA",
+                        "color": "#009999",
+                        "font-weight": "800",
+                        "border": "1px solid #009999",
+                    })
+                }
+                else{
+                    $(".topbarbutton").css({
+                        "background": "rgba(255,255,255,0.7)",
+                        "color": "#666",
+                        "font-weight": "normal",
+                        "border": "1px solid #cdcdcd",
+                    })
+                }
+            });     
+        </script>
+
+        <!-- Start of desktop view -->
+        
+        <!-- Title and color legend -->
+
+        <div id="info">
+
+            <div class="header">東京 23 区全体の<br>時間帯別人数</div>
+            
+            <div class="subheader">人数<br><span id="test"></span></div>
+
+            <table>
+                <tr>
+                    <td><div class="color #0"></div></td><td><div class="colorlabel">0 - 1000</div></td>
+                    <td width="12px"></td>
+                    <td><div class="color #8000"></div></td><td><div class="colorlabel">8001 - 10000</div></td>
+                </tr>
+                <tr>
+                    <td><div class="color #1000"></div></td><td><div class="colorlabel">1001 - 2000</div></td>
+                    <td width="12px"></td>
+                    <td><div class="color #10000"></div></td><td><div class="colorlabel">10001 - 15000</div></td>
+                </tr>
+                <tr>
+                    <td><div class="color #2000"></div></td><td><div class="colorlabel">2001 - 3000</div></td>
+                    <td width="12px"></td>
+                    <td><div class="color #15000"></div></td><td><div class="colorlabel">15001 - 20000</div></td>
+                </tr>
+                <tr>
+                    <td><div class="color #3000"></div></td><td><div class="colorlabel">3001 - 4500</div></td>
+                    <td width="12px"></td>
+                    <td><div class="color #20000"></div></td><td><div class="colorlabel">20001 - 30000</div></td>
+                </tr>
+                <tr>
+                    <td><div class="color #4500"></div></td><td><div class="colorlabel">4501 - 6000</div></td>
+                    <td width="12px"></td>
+                    <td><div class="color #30000"></div></td><td><div class="colorlabel">30001 - 4000</div></td>
+                </tr>
+                <tr>
+                    <td><div class="color #6000"></div></td><td><div class="colorlabel">6001 - 8000</div></td>
+                    <td width="12px"></td>
+                    <td><div class="color #40000"></div></td><td><div class="colorlabel">4001 +</div></td>
+                </tr>
+            </table>
+
+        </div>
+
+        <!-- Time slider and date selector -->
+        
+        <div id='filters'>
+
+            <div class='slider'>
+                <input id="slidertrack" class="slidertrack" type='range' name='time' min='0' max='23' step='1' value='12' />
+                <output class="sliderthumb" id="timevalue"></output>
+
+                <!-- Correct slider thumb position in Firefox -->
+                <script>
+                    if (navigator.userAgent.indexOf("Firefox") > -1) {
+                        $(".sliderthumb").css({
+                            "margin-top": "-30px",
+                        })
+                    }
+                </script>
+
+            </div>
+
+            <!-- IMPORTANT: Enter new <tr> rows of "dateselect" table to add date sselection for new datasets -->
+            
+            <div class="dates">
+                <form id="dates">
+                    <table class="dateselect">
+                        <tr>
+                            <td>
+                                <div class="datecat">新型コロナ流行前: 2019/10/1 - 31</div>
+                            </td>
+                            <td>
+                                <input id="201910WD" value="201910WD" type="radio" name="button"  onclick='toggleLayer(this)' checked="checked">
+                                <label for="201910WD">平日</label>
+                            </td>
+                            <td>
+                                <input id="201910WE" value="201910WE" name="button" type="radio">
+                                <label for="201910WE">休日</label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="datecat">緊急事態宣言中: 2020/4/16 - 5/25</div>
+                            </td>
+                            <td>
+                                <input id="soeWD" value="soeWD" name="button" type="radio">
+                                <label for="soeWD">平日</label>
+                            </td>
+                            <td>
+                                <input id="soeWE" value="soeWE" name="button" type="radio">
+                                <label for="soeWE">休日</label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="datecat">2020/6/15 - 7/14</div>
+                            </td>
+                            <td>
+                                <input id="202067WD" value="202067WD" name="button" type="radio">
+                                <label for="202067WD">平日</label>
+                            </td>
+                            <td>
+                                <input id="202067WE" value="202067WE" name="button" type="radio">
+                                <label for="202067WE">休日</label>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+            
+            <!-- Show/hide dates for selection -->
+            
+            <div class="showdates" onclick="toggleDates(this)">
+                <span>+<br>日付を選択</span>
+            </div>
+            
+            <script>
+                function toggleDates(td) {
+                    $('.dates').slideToggle(300)
+                    $(td).toggleClass('hidedates')
+                    $(td).html($(td).html() == '×<br>閉じる' ? '+<br>日付を選択' : '×<br>閉じる')
+                }
+            </script>
+            
+        </div>
+
+        <!-- Javascript to load maps and control user interaction -->
+
+        <script>
+            
+            mapboxgl.accessToken = 'pk.eyJ1IjoibnlhbWF0byIsImEiOiJja2Y4dzNkOW8wY3MwMnFvM29iNnJzNzVzIn0.GHlHwu3r5YjKBU3qAKvccQ'
+
+            // Load map view based on device type
+
+            var mq = window.matchMedia( "(min-width: 768px)" )
+            const ua = navigator.userAgent
+
+            if (mq.matches){
+                var map = new mapboxgl.Map({
+                    container: 'map',
+                    style: 'mapbox://styles/nyamato/ckfnam5n606jc19r1f7jsjvd4',
+                    minZoom: 11,
+                    maxZoom: 13,
+                    center: [139.7569, 35.6314],
+                    pitch: 47,
+                    bearing:-28.6,
+                    zoom: 11,
+                })
+            } else {
+                if ( /iPhone/i.test(navigator.userAgent)) {
+                    var map = new mapboxgl.Map({
+                        container: 'map',
+                        style: 'mapbox://styles/nyamato/ckfnam5n606jc19r1f7jsjvd4',
+                        minZoom: 11,
+                        maxZoom: 13,
+                        center: [139.780000, 35.740000],
+                        pitch: 47,
+                        bearing:-28.6,
+                        zoom: 11,
+                    })        
+                } else {
+                    var map = new mapboxgl.Map({
+                        container: 'map',
+                        style: 'mapbox://styles/nyamato/ckfnam5n606jc19r1f7jsjvd4',
+                        minZoom: 11,
+                        maxZoom: 13,
+                        center: [139.755000, 35.700000],
+                        pitch: 47,
+                        bearing:-28.6,
+                        zoom: 11,
+                    })           
+                }
+            }
+
+
+            /*
+            Load data sources and layers for map
+            IMPORTANT: Add a new source and layer for each new dataset
+            */
+
+            map.on('load', function() {
+                
+                var colorScale = [
+                            'step',
+                            ['get', 'Population'],
+                            '#5D4EA1',
+                            1000, '#3582BA',
+                            2000, '#54D1BC',
+                            3000, '#A6FFC2',
+                            4500, '#CBFA84',
+                            6000, '#F2F063',
+                            8000, '#FFCC33',
+                            10000, '#F29C11',
+                            15000, '#F7700F',
+                            20000, '#DB3C23',
+                            30000, '#B31225',
+                            40000, '#85092E',
+                        ]
+                
+                map.addSource('201910WD', {
+                    type: 'vector',
+                    url: 'mapbox://nyamato.7mq6iyd4',
+                })
+                map.addLayer({
+                    id: '201910WD',
+                    type: 'fill-extrusion',
+                    source: '201910WD',
+                    'source-layer': '201910WD-7aqr67',
+                    paint: {
+                        'fill-extrusion-color': colorScale,
+                        'fill-extrusion-height': [
+                            '*',
+                            ['get', 'Population'],
+                            0.15
+                        ], 
+                    },
+                    filter: ['==', ['number', ['get', 'Time']], 1200],
+                    layout: {
+                        visibility: 'visible',
+                    }
+                })
+
+                map.addSource('201910WE', {
+                    type: 'vector',
+                    url: 'mapbox://nyamato.9p8qynq6',
+                })
+                map.addLayer({
+                    id: '201910WE',
+                    type: 'fill-extrusion',
+                    source: '201910WE',
+                    'source-layer': '201910WE-64bxg8',
+                    paint: {
+                        'fill-extrusion-color': colorScale,
+                        'fill-extrusion-height': [
+                            '*',
+                            ['get', 'Population'],
+                            0.15
+                        ], 
+                    },
+                    filter: ['==', ['number', ['get', 'Time']], 1200],
+                    layout: {
+                        visibility: 'none',
+                    }
+                })
+
+                map.addSource('soeWD', {
+                    type: 'vector',
+                    url: 'mapbox://nyamato.d091zt9g',
+                })
+                map.addLayer({
+                    id: 'soeWD',
+                    type: 'fill-extrusion',
+                    source: 'soeWD',
+                    'source-layer': 'soeWD-3023ff',
+                    paint: {
+                        'fill-extrusion-color': colorScale,
+                        'fill-extrusion-height': [
+                            '*',
+                            ['get', 'Population'],
+                            0.15
+                        ], 
+                    },
+                    filter: ['==', ['number', ['get', 'Time']], 1200],
+                    layout: {
+                        visibility: 'none',
+                    }
+                })
+
+                map.addSource('soeWE', {
+                    type: 'vector',
+                    url: 'mapbox://nyamato.5ce1o3te',
+                })
+                map.addLayer({
+                    id: 'soeWE',
+                    type: 'fill-extrusion',
+                    source: 'soeWE',
+                    'source-layer': 'soeWE-9b30ck',
+                    paint: {
+                        'fill-extrusion-color': colorScale,
+                        'fill-extrusion-height': [
+                            '*',
+                            ['get', 'Population'],
+                            0.15
+                        ], 
+                    },
+                    filter: ['==', ['number', ['get', 'Time']], 1200],
+                    layout: {
+                        visibility: 'none',
+                    }
+                })
+
+                map.addSource('202067WD', {
+                    type: 'vector',
+                    url: 'mapbox://nyamato.6d261hgn',
+                })
+                map.addLayer({
+                    id: '202067WD',
+                    type: 'fill-extrusion',
+                    source: '202067WD',
+                    'source-layer': '202067WD-2eo1m5',
+                    paint: {
+                        'fill-extrusion-color': colorScale,
+                        'fill-extrusion-height': [
+                            '*',
+                            ['get', 'Population'],
+                            0.15
+                        ], 
+                    },
+                    filter: ['==', ['number', ['get', 'Time']], 1200],
+                    layout: {
+                        visibility: 'none',
+                    }
+                })
+
+                map.addSource('202067WE', {
+                    type: 'vector',
+                    url: 'mapbox://nyamato.1jvhckwd',
+                })
+                map.addLayer({
+                    id: '202067WE',
+                    type: 'fill-extrusion',
+                    source: '202067WE',
+                    'source-layer': '202067WE-5b8bb1',
+                    paint: {
+                        'fill-extrusion-color': colorScale,
+                        'fill-extrusion-height': [
+                            '*',
+                            ['get', 'Population'],
+                            0.15
+                        ], 
+                    },
+                    filter: ['==', ['number', ['get', 'Time']], 1200],
+                    layout: {
+                        visibility: 'none',
+                    }
+                })
+                
+                // Loads map based on value of time slider
+                
+                document.getElementById('slidertrack').addEventListener('input', function(e) {
+                    var hour = parseInt(e.target.value)
+                    var hourcode = hour*100
+                    var clicked = document.querySelector('input[name="button"]:checked').value
+                    filterHour = ['==', ['number', ['get', 'Time']], hourcode]
+                    map.setFilter(clicked, ['all', filterHour])
+                })
+                
+                // Sets position of slider thumb from user interaction
+
+                const allRanges = document.querySelectorAll(".slider")
+                allRanges.forEach(wrap => {
+                    const slider = wrap.querySelector(".slidertrack")
+                    const thumb = wrap.querySelector(".sliderthumb")
+                    slider.addEventListener("input", () => {
+                        setBubble(slider, thumb)
+                    })
+                    setBubble(slider, thumb)
+                })
+
+                /*
+                Corrects position of CSS-styled thumb against default (invisible) thumb, and sets time value as text in thumb
+                Some numbers are specific to the CSS styling of slider track and thumb, and must be changed along with the CSS
+                */
+                
+                function setBubble(slider, thumb) {
+                    const val = slider.value
+                    const min = slider.min ? slider.min : 0
+                    const max = slider.max ? slider.max : 85 // '85' based on CSS
+                    const newVal = Number(((val - min) * 85) / (max - min)) // '85' based on CSS
+                    const ampm = val >= 12 ? 'PM' : 'AM'
+                    const hour12 = val % 12 ? val % 12 : 12
+                    thumb.innerHTML = hour12 + '&nbsp;' + ampm
+                    thumb.style.left = `calc(${newVal}% + 23px + (${23 - newVal * 0.50}px))` // equation values based on CSS
+                }
+
+                /*
+                Loads map based on selected date
+                IMPORTANT: Add new dataset names into "layers" array
+                */
+                
+                document.getElementById('dates').addEventListener('change', function(e) {
+                    var date = e.target.value
+                    var layers = [
+                    '201910WD',
+                    '201910WE',
+                    'soeWD',
+                    'soeWE',
+                    '202067WD',
+                    '202067WE',
+                    ]
+                    for (var i = 0; i < layers.length; i++) {
+                        var layer = layers[i]
+                        if (date === layer) {
+                            map.setLayoutProperty(layer, 'visibility', 'visible')
+                            var inactiveLayers = layers.filter(el => el !== layer)
+                            for (var i = 0; i < inactiveLayers.length; i++) {
+                                inactiveLayer = inactiveLayers[i]
+                                map.setLayoutProperty(inactiveLayer, 'visibility', 'none')
+                            }
+                        } else {
+                            map.setLayoutProperty(layer, 'visibility', 'none')
+                        }
+                    }
+                })
+            })    
+
+        </script>
+    </body>
+</html>
